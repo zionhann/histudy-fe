@@ -57,27 +57,31 @@ export default function ManageClassPage() {
    };
 
    const handleDownloadTemplate = async () => {
+      let url: string | null = null;
       try {
          const blob = await downloadTemplate();
-         const url = URL.createObjectURL(blob);
+         url = URL.createObjectURL(blob);
          const anchor = document.createElement('a');
          anchor.href = url;
          anchor.download = 'course-upload-template.csv';
          document.body.appendChild(anchor);
          anchor.click();
          anchor.remove();
-         URL.revokeObjectURL(url);
          toast.success('강의 업로드 양식을 다운로드했습니다.');
       } catch {
          toast.error('강의 업로드 양식 다운로드에 실패했습니다.');
+      } finally {
+         if (url) {
+            URL.revokeObjectURL(url);
+         }
       }
    };
 
    return (
       <div className="container mx-auto p-4 md:p-8  space-y-8">
-         <div className="flex justify-between items-center mb-6 ">
+         <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
             <h1 className="text-2xl font-semibold">등록된 수업 목록</h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
                <Button variant="outline" onClick={handleDownloadTemplate} disabled={isDownloading}>
                   <Download className="w-4 h-4 mr-2" />
                   강의 업로드 양식 다운로드
