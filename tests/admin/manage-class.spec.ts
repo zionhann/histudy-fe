@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs/promises';
 
 test.use({ storageState: 'tests/auth/admin.json' });
 
@@ -6,6 +7,34 @@ test.beforeEach(async ({ page }) => {
    await page.route('**/api/courses/delete', async (route) => {
       await route.fulfill({ status: 501, json: { message: '구형 수업 삭제 API가 호출되었습니다.' } });
    });
+});
+
+test('관리자가 수업 목록 조회에서 과목 업로드 양식을 다운로드한다', async ({ page }) => {
+   const templateContent = '\uFEFFtitle,code,prof\r\n';
+
+   await page.route('**/api/courses?search=*', async (route) => {
+      await route.fulfill({ json: { courses: [] } });
+   });
+   await page.route('**/api/admin/academicTerm/course-template', async (route) => {
+      await route.fulfill({
+         status: 200,
+         headers: {
+            'Content-Type': 'text/csv;charset=UTF-8',
+            'Content-Disposition': 'attachment; filename="course-upload-template.csv"',
+         },
+         body: Buffer.from(templateContent, 'utf8'),
+      });
+   });
+
+   await page.goto('/admin/manage-class');
+   const downloadPromise = page.waitForEvent('download');
+   await page.getByRole('button', { name: '강의 업로드 양식 다운로드', exact: true }).click();
+   const download = await downloadPromise;
+
+   expect(download.suggestedFilename()).toBe('course-upload-template.csv');
+   const downloadedPath = await download.path();
+   expect(downloadedPath).not.toBeNull();
+   await expect(fs.readFile(downloadedPath!, 'utf8')).resolves.toBe(templateContent);
 });
 
 test('관리자가 등록된 수업을 삭제하면 목록을 갱신한다', async ({ page }) => {

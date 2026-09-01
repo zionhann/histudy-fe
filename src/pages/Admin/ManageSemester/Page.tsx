@@ -80,9 +80,11 @@ export default function ManageSemesterPage() {
          <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">학기 관리</h1>
 
-            <Button onClick={() => setIsCreating(true)} disabled={isCreating}>
-               <Plus className="w-4 h-4 mr-2" />새 학기 추가
-            </Button>
+            <div className="flex gap-2">
+               <Button onClick={() => setIsCreating(true)} disabled={isCreating}>
+                  <Plus className="w-4 h-4 mr-2" />새 학기 추가
+               </Button>
+            </div>
          </div>
          <div className="text-lg text-red-500">학기 삭제 기능이 없으니 주의해서 생성해주세요.</div>
 

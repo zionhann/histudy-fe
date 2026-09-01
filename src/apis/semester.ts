@@ -21,3 +21,10 @@ export const postSemester = async (semesterBody: Pick<Semester, 'year' | 'semest
    });
    return response.data;
 };
+
+export const downloadCourseTemplate = async (): Promise<Blob> => {
+   const response = await axiosInstance.get('/api/admin/academicTerm/course-template', {
+      responseType: 'blob',
+   });
+   return response.data;
+};
