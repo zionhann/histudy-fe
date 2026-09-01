@@ -1,4 +1,4 @@
-import { downloadCourseTemplate, getSemester, patchCurrentSemester, postSemester } from '@/apis/semester';
+import { getSemester, patchCurrentSemester, postSemester } from '@/apis/semester';
 import { WaveLoading } from '@/components/WaveLoading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SemesterType } from '@/interface/semester';
-import { Download, Plus, Save, X } from 'lucide-react';
+import { Plus, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
 import { toast } from 'sonner';
@@ -23,7 +23,6 @@ export default function ManageSemesterPage() {
 
    const { mutateAsync: createSemester } = useMutation(postSemester);
    const { mutateAsync: setCurrentSemester } = useMutation(patchCurrentSemester);
-   const { mutateAsync: downloadTemplate, isLoading: isDownloading } = useMutation(downloadCourseTemplate);
 
    const [year, setYear] = useState(new Date().getFullYear());
    const [semester, setSemester] = useState<SemesterType>('SPRING');
@@ -58,23 +57,6 @@ export default function ManageSemesterPage() {
       setIsCreating(false);
    };
 
-   const handleDownloadTemplate = async () => {
-      try {
-         const blob = await downloadTemplate();
-         const url = URL.createObjectURL(blob);
-         const anchor = document.createElement('a');
-         anchor.href = url;
-         anchor.download = 'course-upload-template.csv';
-         document.body.appendChild(anchor);
-         anchor.click();
-         anchor.remove();
-         URL.revokeObjectURL(url);
-         toast.success('강의 업로드 양식을 다운로드했습니다.');
-      } catch {
-         toast.error('강의 업로드 양식 다운로드에 실패했습니다.');
-      }
-   };
-
    const handleActivate = async (accademyTermId: number) => {
       console.log(accademyTermId);
       if (!confirm('현재 학기로 설정하시겠습니까?')) {
@@ -99,10 +81,6 @@ export default function ManageSemesterPage() {
             <h1 className="text-2xl font-bold">학기 관리</h1>
 
             <div className="flex gap-2">
-               <Button variant="outline" onClick={handleDownloadTemplate} disabled={isDownloading}>
-                  <Download className="w-4 h-4 mr-2" />
-                  강의 업로드 양식 다운로드
-               </Button>
                <Button onClick={() => setIsCreating(true)} disabled={isCreating}>
                   <Plus className="w-4 h-4 mr-2" />새 학기 추가
                </Button>
