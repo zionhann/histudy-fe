@@ -10,7 +10,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('관리자가 수업 목록 조회에서 과목 업로드 양식을 다운로드한다', async ({ page }) => {
-   const templateContent = '\uFEFFtitle,code,prof\r\n';
+   const templateContent =
+      '\uFEFFtitle,code,prof\r\n"Software Engineering",ITP40002,남재창\r\n';
 
    await page.route('**/api/courses?search=*', async (route) => {
       await route.fulfill({ json: { courses: [] } });
@@ -35,6 +36,56 @@ test('관리자가 수업 목록 조회에서 과목 업로드 양식을 다운�
    const downloadedPath = await download.path();
    expect(downloadedPath).not.toBeNull();
    await expect(fs.readFile(downloadedPath!, 'utf8')).resolves.toBe(templateContent);
+});
+
+test('관리자가 수업 목록을 업로드하면 성공 토스트를 표시한다', async ({ page }) => {
+   await page.route('**/api/courses?search=*', async (route) => {
+      await route.fulfill({ json: { courses: [] } });
+   });
+   await page.route('**/api/courses', async (route) => {
+      if (route.request().method() === 'POST') {
+         await route.fulfill({ status: 201 });
+         return;
+      }
+      await route.continue();
+   });
+
+   await page.goto('/admin/manage-class');
+   await expect(page.locator('input[type="file"]')).toHaveAttribute('accept', '.csv,text/csv,application/vnd.ms-excel');
+   await expect(
+      page.getByText('다운로드 양식의 예시 행을 삭제하고 실제 수업 데이터만 남긴 뒤 업로드하세요.'),
+   ).toHaveCount(0);
+   page.once('dialog', (dialog) => dialog.accept());
+   await page.locator('input[type="file"]').setInputFiles({
+      name: 'courses.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('title,code,prof\r\n자료구조,CSE201,김교수\r\n'),
+   });
+
+   await expect(page.getByText('수업 목록을 성공적으로 불러왔습니다.')).toBeVisible();
+});
+
+test('수업 목록 업로드가 실패하면 서버 오류 토스트를 표시한다', async ({ page }) => {
+   await page.route('**/api/courses?search=*', async (route) => {
+      await route.fulfill({ json: { courses: [] } });
+   });
+   await page.route('**/api/courses', async (route) => {
+      if (route.request().method() === 'POST') {
+         await route.fulfill({ status: 400, json: { message: 'CSV 헤더는 title,code,prof 형식이어야 합니다.' } });
+         return;
+      }
+      await route.continue();
+   });
+
+   await page.goto('/admin/manage-class');
+   page.once('dialog', (dialog) => dialog.accept());
+   await page.locator('input[type="file"]').setInputFiles({
+      name: 'courses.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('name,number,teacher\r\n자료구조,CSE201,김교수\r\n'),
+   });
+
+   await expect(page.getByText('CSV 헤더는 title,code,prof 형식이어야 합니다.')).toBeVisible();
 });
 
 test('관리자가 등록된 수업을 삭제하면 목록을 갱신한다', async ({ page }) => {
