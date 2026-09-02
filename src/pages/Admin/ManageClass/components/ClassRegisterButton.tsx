@@ -39,7 +39,9 @@ export default function ClassRegisterButton({ refetch }: { refetch: Refetch }) {
       } catch (error) {
          toast.error(getUploadErrorMessage(error));
       } finally {
-         event.target.value = '';
+         if (fileRef.current) {
+            fileRef.current.value = '';
+         }
       }
    };
 

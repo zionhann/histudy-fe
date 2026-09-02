@@ -10,8 +10,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('관리자가 수업 목록 조회에서 과목 업로드 양식을 다운로드한다', async ({ page }) => {
-   const templateContent =
-      '\uFEFFtitle,code,prof\r\n"Software Engineering",ITP40002,남재창\r\n';
+   const templateContent = '\uFEFFtitle,code,prof\r\n"Software Engineering",ITP40002,남재창\r\n';
 
    await page.route('**/api/courses?search=*', async (route) => {
       await route.fulfill({ json: { courses: [] } });
