@@ -1,23 +1,48 @@
 import { importCourses } from '@/apis/course';
 import { Button } from '@/components/ui/button';
+import axios from 'axios';
 import { useRef } from 'react';
 import { toast } from 'sonner';
-export default function ClassRegisterButton({ refetch }: { refetch: () => void }) {
+
+type Refetch = (options?: { throwOnError?: boolean }) => Promise<unknown> | unknown;
+
+const getUploadErrorMessage = (error: unknown) => {
+   if (axios.isAxiosError<{ message?: string }>(error)) {
+      return error.response?.data?.message || '수업 목록 업로드에 실패했습니다.';
+   }
+
+   return '수업 목록 업로드에 실패했습니다.';
+};
+
+export default function ClassRegisterButton({ refetch }: { refetch: Refetch }) {
    const fileRef = useRef<HTMLInputElement>(null);
    const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       event.preventDefault();
 
-      if (!window.confirm('해당 파일을 등록하시겠습니까??')) return;
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      const formData = new FormData();
+      try {
+         if (!window.confirm('예시 행을 삭제했는지 확인했습니다. 해당 파일을 등록하시겠습니까?')) return;
 
-      if (!event.target.files) return;
+         const formData = new FormData();
+         formData.append('file', file);
 
-      formData.append('file', event.target.files[0]);
+         await importCourses(formData);
+         toast.success('수업 목록을 성공적으로 불러왔습니다.');
 
-      await importCourses(formData);
-      refetch();
-      toast.success('성공적으로 등록되었습니다.');
+         try {
+            await refetch({ throwOnError: true });
+         } catch {
+            toast.error('수업 목록 갱신에 실패했습니다. 새로고침해 주세요.');
+         }
+      } catch (error) {
+         toast.error(getUploadErrorMessage(error));
+      } finally {
+         if (fileRef.current) {
+            fileRef.current.value = '';
+         }
+      }
    };
 
    const handleClick = () => {
@@ -30,7 +55,7 @@ export default function ClassRegisterButton({ refetch }: { refetch: () => void }
             type="file"
             ref={fileRef}
             hidden
-            // style={{ display: "hidden" }}
+            accept=".csv,text/csv,application/vnd.ms-excel"
             onChange={handleChange}
          />
          <Button onClick={handleClick}>수업 목록 불러오기</Button>
