@@ -178,7 +178,7 @@ export default function ReportAddPage() {
       }
 
       try {
-         const results: string[] = [];
+         let uploadedImagePaths = form.getValues('images');
 
          for (const [index, file] of formData.blobImages.entries()) {
             if (index > 0) {
@@ -189,10 +189,10 @@ export default function ReportAddPage() {
             fd.append('image', file);
 
             const res = await ImageUploadToServer(null, fd);
-            results.push(res.data.imagePath);
+            uploadedImagePaths = [...uploadedImagePaths, res.data.imagePath];
+            form.setValue('images', uploadedImagePaths, { shouldValidate: true });
+            form.setValue('blobImages', form.getValues('blobImages').slice(1), { shouldValidate: true });
          }
-
-         form.setValue('images', results);
       } catch (error) {
          const errorMessage = isReportImageUploadTooLargeError(error)
             ? REPORT_IMAGE_UPLOAD_MAX_SIZE_MESSAGE

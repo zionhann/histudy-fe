@@ -196,9 +196,9 @@ export default function ReportEditPage() {
          return;
       }
 
-      const newImagePaths: string[] = [];
-
       try {
+         let finalImages = form.getValues('images');
+
          for (const [index, file] of formData.blobImages.entries()) {
             if (index > 0) {
                await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -208,7 +208,9 @@ export default function ReportEditPage() {
             fd.append('image', file);
 
             const res = await ImageUploadToServer(+id, fd);
-            newImagePaths.push(res.data.imagePath);
+            finalImages = [...finalImages, res.data.imagePath];
+            form.setValue('images', finalImages, { shouldValidate: true });
+            form.setValue('blobImages', form.getValues('blobImages').slice(1), { shouldValidate: true });
          }
       } catch (error) {
          const errorMessage = isReportImageUploadTooLargeError(error)
@@ -219,16 +221,13 @@ export default function ReportEditPage() {
          return;
       }
 
-      // 기존 이미지와 새 이미지 합치기
-      const existingImages = form.getValues('images');
-      const finalImages = [...existingImages, ...newImagePaths];
-
+      // 업로드가 완료된 기존/신규 이미지 경로로 보고서 수정
       const newReport = {
          title: formData.title,
          content: formData.content,
          totalMinutes: Number(formData.totalMinutes),
          participants: formData.participants,
-         images: finalImages,
+         images: form.getValues('images'),
          courses: formData.courses,
       } as NewReport;
 

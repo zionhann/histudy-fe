@@ -68,3 +68,11 @@ test('API 오류가 아니면 안전한 기본 메시지를 반환한다', () =>
    // then
    expect(message).toBe('요청에 실패했습니다.');
 });
+
+test('배열 형태 응답은 API 오류로 해석하지 않는다', () => {
+   // when
+   const message = formatApiErrorMessage(apiError(['private detail'], 500), '요청에 실패했습니다.');
+
+   // then
+   expect(message).toBe('요청에 실패했습니다.');
+});
