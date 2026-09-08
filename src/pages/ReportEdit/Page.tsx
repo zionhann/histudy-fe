@@ -66,6 +66,7 @@ const reportFormSchema = z.object({
       .min(1, '최소 1개의 이미지를 업로드 해주세요.')
       .max(3, '최대 3개의 이미지만 업로드 가능합니다.'),
    blobImages: z.array(z.instanceof(File)),
+   uploadedBlobPaths: z.array(z.string().nullable()),
 });
 
 type ReportFormState = z.infer<typeof reportFormSchema>;
@@ -169,6 +170,7 @@ export default function ReportEditPage() {
          courses: [],
          previewImages: [],
          blobImages: [],
+         uploadedBlobPaths: [],
       },
    });
 
@@ -183,6 +185,7 @@ export default function ReportEditPage() {
             courses: report.courses.map((course) => course.id),
             previewImages: report.images.map((image) => image.url),
             blobImages: [],
+            uploadedBlobPaths: [],
          });
       }
    }, [report, form]);
@@ -198,8 +201,13 @@ export default function ReportEditPage() {
 
       try {
          let finalImages = form.getValues('images');
+         let uploadedBlobPaths = form.getValues('uploadedBlobPaths');
 
          for (const [index, file] of formData.blobImages.entries()) {
+            if (uploadedBlobPaths[index]) {
+               continue;
+            }
+
             if (index > 0) {
                await new Promise((resolve) => setTimeout(resolve, 1000));
             }
@@ -209,8 +217,10 @@ export default function ReportEditPage() {
 
             const res = await ImageUploadToServer(+id, fd);
             finalImages = [...finalImages, res.data.imagePath];
+            uploadedBlobPaths = [...uploadedBlobPaths];
+            uploadedBlobPaths[index] = res.data.imagePath;
             form.setValue('images', finalImages, { shouldValidate: true });
-            form.setValue('blobImages', form.getValues('blobImages').slice(1), { shouldValidate: true });
+            form.setValue('uploadedBlobPaths', uploadedBlobPaths, { shouldValidate: true });
          }
       } catch (error) {
          const errorMessage = isReportImageUploadTooLargeError(error)
@@ -334,6 +344,9 @@ export default function ReportEditPage() {
       ], {
          shouldValidate: true,
       });
+      form.setValue('uploadedBlobPaths', [...form.getValues('uploadedBlobPaths'), null], {
+         shouldValidate: true,
+      });
 
       e.target.value = '';
    };
@@ -436,11 +449,26 @@ export default function ReportEditPage() {
                                                       .filter(
                                                          (imgUrl) => !report?.images.some((img) => img.url === imgUrl),
                                                       ).length;
+                                                   const uploadedImagePath = form.getValues('uploadedBlobPaths')[newImageIndex];
+                                                   if (uploadedImagePath) {
+                                                      form.setValue(
+                                                         'images',
+                                                         form
+                                                            .getValues('images')
+                                                            .filter((imagePath) => imagePath !== uploadedImagePath),
+                                                      );
+                                                   }
 
                                                    form.setValue(
                                                       'blobImages',
                                                       form
                                                          .getValues('blobImages')
+                                                         .filter((_, i) => i !== newImageIndex),
+                                                   );
+                                                   form.setValue(
+                                                      'uploadedBlobPaths',
+                                                      form
+                                                         .getValues('uploadedBlobPaths')
                                                          .filter((_, i) => i !== newImageIndex),
                                                    );
                                                 }

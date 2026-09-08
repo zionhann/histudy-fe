@@ -68,6 +68,7 @@ const reportFormSchema = z.object({
       .array(z.instanceof(File))
       .min(1, '최소 1개의 이미지를 업로드 해주세요.')
       .max(3, '최대 3개의 이미지만 업로드 가능합니다.'),
+   uploadedBlobPaths: z.array(z.string().nullable()),
 });
 
 type ReportFormState = z.infer<typeof reportFormSchema>;
@@ -165,6 +166,7 @@ export default function ReportAddPage() {
          courses: [],
          previewImages: [],
          blobImages: [],
+         uploadedBlobPaths: [],
       },
    });
 
@@ -179,8 +181,13 @@ export default function ReportAddPage() {
 
       try {
          let uploadedImagePaths = form.getValues('images');
+         let uploadedBlobPaths = form.getValues('uploadedBlobPaths');
 
          for (const [index, file] of formData.blobImages.entries()) {
+            if (uploadedBlobPaths[index]) {
+               continue;
+            }
+
             if (index > 0) {
                await new Promise((resolve) => setTimeout(resolve, 1000));
             }
@@ -190,8 +197,10 @@ export default function ReportAddPage() {
 
             const res = await ImageUploadToServer(null, fd);
             uploadedImagePaths = [...uploadedImagePaths, res.data.imagePath];
+            uploadedBlobPaths = [...uploadedBlobPaths];
+            uploadedBlobPaths[index] = res.data.imagePath;
             form.setValue('images', uploadedImagePaths, { shouldValidate: true });
-            form.setValue('blobImages', form.getValues('blobImages').slice(1), { shouldValidate: true });
+            form.setValue('uploadedBlobPaths', uploadedBlobPaths, { shouldValidate: true });
          }
       } catch (error) {
          const errorMessage = isReportImageUploadTooLargeError(error)
@@ -315,6 +324,9 @@ export default function ReportAddPage() {
       ], {
          shouldValidate: true,
       });
+      form.setValue('uploadedBlobPaths', [...form.getValues('uploadedBlobPaths'), null], {
+         shouldValidate: true,
+      });
 
       e.target.value = '';
    };
@@ -386,9 +398,22 @@ export default function ReportAddPage() {
                                           size="icon"
                                           className="absolute top-1 right-1 h-6 w-6 opacity-70 group-hover:opacity-100"
                                           onClick={() => {
+                                             const uploadedImagePath = form.getValues('uploadedBlobPaths')[index];
+                                             if (uploadedImagePath) {
+                                                form.setValue(
+                                                   'images',
+                                                   form
+                                                      .getValues('images')
+                                                      .filter((imagePath) => imagePath !== uploadedImagePath),
+                                                );
+                                             }
                                              form.setValue(
                                                 'blobImages',
                                                 form.getValues('blobImages').filter((_, i) => i !== index),
+                                             );
+                                             form.setValue(
+                                                'uploadedBlobPaths',
+                                                form.getValues('uploadedBlobPaths').filter((_, i) => i !== index),
                                              );
                                              form.setValue(
                                                 'previewImages',
