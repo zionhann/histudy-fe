@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { paths } from '@/const/paths';
 import { NewReport } from '@/interface/report';
 import { StudyCertificationDialog } from '@/pages/ReportAdd/components/StudyCertificationDialog';
+import { formatApiErrorMessage } from '@/utils/apiError';
 import {
    REPORT_CONTENT_MAX_LENGTH,
    REPORT_IMAGE_UPLOAD_FAILURE_MESSAGE,
@@ -195,7 +196,7 @@ export default function ReportAddPage() {
       } catch (error) {
          const errorMessage = isReportImageUploadTooLargeError(error)
             ? REPORT_IMAGE_UPLOAD_MAX_SIZE_MESSAGE
-            : REPORT_IMAGE_UPLOAD_FAILURE_MESSAGE;
+            : formatApiErrorMessage(error, REPORT_IMAGE_UPLOAD_FAILURE_MESSAGE);
          setImageUploadError(errorMessage);
          toast.error(errorMessage);
          return;
@@ -211,7 +212,12 @@ export default function ReportAddPage() {
          courses: formData.courses,
       } as NewReport;
 
-      await postReport(newReport);
+      try {
+         await postReport(newReport);
+      } catch (error) {
+         toast.error(formatApiErrorMessage(error, '보고서 제출에 실패했습니다.'));
+         return;
+      }
       queryClient.invalidateQueries({ queryKey: ['reports'] });
 
       toast.success('보고서 제출이 완료되었습니다.');
